@@ -1,5 +1,7 @@
 use ndarray::prelude::*;
 
+use std::fmt;
+
 #[derive(Debug)]
 pub struct Grid {
     grid: Array2<Option<char>>,
@@ -20,9 +22,27 @@ impl Grid {
 
         for i in 0..nrows {
             for (j, chr) in v[i].char_indices() {
-                grid[[i, j]] = Some(chr)
+                grid[[i, j]] = match chr {
+                    '.' => None,
+                    other => Some(other),
+                }
             }
         }
         Grid { grid }
+    }
+}
+
+impl fmt::Display for Grid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Grid{{\n")?;
+        for row in self.grid.rows() {
+            write!(f, "  ")?;
+            for chr in row.iter().map(|e| e.unwrap_or('■')) {
+                write!(f, "{chr}")?;
+            }
+            write!(f, "\n")?;
+        }
+        write!(f, "}}")?;
+        Ok(())
     }
 }

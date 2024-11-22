@@ -10,7 +10,7 @@ TROUT
 
     let puzzle = Grid::from_str(crossword_str);
 
-    println!("Hello, {puzzle:?}");
+    println!("This is our puzzle: {puzzle}");
 }
 
 #[cfg(test)]
