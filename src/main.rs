@@ -1,6 +1,16 @@
+use xw::*;
+
 fn main() {
-    println!("Hello, world!");
-    println!("this is a crossword puzzle!");
+    let crossword_str = "\
+.ABC.
+DE FG
+TROUT
+.MNO.\
+";
+
+    let puzzle = Grid::from_str(crossword_str);
+
+    println!("This is our puzzle: {puzzle}");
 }
 
 #[cfg(test)]
