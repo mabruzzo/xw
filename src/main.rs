@@ -1,6 +1,9 @@
+use ndarray::prelude::*;
+
 fn main() {
-    println!("Hello, world!");
-    println!("this is a crossword puzzle!");
+    let arr: Array2<char> = Array::from_elem((3, 4), ' ');
+
+    println!("Hello, {arr:?}");
 }
 
 #[cfg(test)]
