@@ -1,9 +1,9 @@
-use ndarray::prelude::*;
+use xw::*;
 
 fn main() {
-    let arr: Array2<char> = Array::from_elem((3, 4), ' ');
+    let puzzle = Grid::new();
 
-    println!("Hello, {arr:?}");
+    println!("Hello, {puzzle:?}");
 }
 
 #[cfg(test)]
