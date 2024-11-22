@@ -1,7 +1,14 @@
 use xw::*;
 
 fn main() {
-    let puzzle = Grid::new();
+    let crossword_str = "\
+.ABC.
+DE FG
+TROUT
+.MNO.\
+";
+
+    let puzzle = Grid::from_str(crossword_str);
 
     println!("Hello, {puzzle:?}");
 }
