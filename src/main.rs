@@ -2,13 +2,13 @@ use xw::*;
 
 fn main() {
     let crossword_str = "\
-.ABC.
-DE FG
-TROUT
-.MNO.\
+.ABC..asdf
+DE FG.asdf
+TROUT.asdf
+.MNO..asdf\
 ";
 
-    let puzzle = Grid::from_str(crossword_str);
+    let puzzle = Puzzle::from_str(crossword_str);
 
     println!("This is our puzzle: {puzzle}");
 }
