@@ -34,14 +34,14 @@ impl Puzzle {
             // first iterate over top row
             for (k, axis) in axes.into_iter().enumerate() {
                 let mut stop = 0usize;
-                let N = axis.len();
-                while stop < N {
+                let n = axis.len();
+                while stop < n {
                     let mut start = stop;
-                    while start < N && axis[start] == None {
+                    while start < n && axis[start] == None {
                         start += 1;
                     }
                     stop = start;
-                    while stop < N && axis[stop] != None {
+                    while stop < n && axis[stop] != None {
                         stop += 1;
                     }
                     if start != stop {
