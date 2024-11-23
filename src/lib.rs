@@ -8,7 +8,7 @@ type Square = Option<char>;
 #[derive(Debug)]
 struct SlotCoords {
     r: Range<usize>, // starting and stopping coordinate along slice axis
-    i: usize,        // row / col the slot is in
+    k: usize,        // row / col the slot is in
 }
 
 #[derive(Debug)]
@@ -29,19 +29,19 @@ impl Puzzle {
     fn identify_downs(grid: &Array2<Square>) -> Vec<SlotCoords> {
         let mut downs = vec![];
         // first iterate over top row
-        for i in 0..grid.shape()[1] {
+        for (k, col) in grid.columns().into_iter().enumerate() {
             let mut stop = 0usize;
             while stop < grid.shape()[0] {
                 let mut start = stop;
-                while start < grid.shape()[0] && grid[[start, i]] == None {
+                while start < grid.shape()[0] && col[start] == None {
                     start += 1;
                 }
                 stop = start;
-                while stop < grid.shape()[0] && grid[[stop, i]] != None {
+                while stop < grid.shape()[0] && col[stop] != None {
                     stop += 1;
                 }
                 if start != stop {
-                    downs.push(SlotCoords { r: start..stop, i });
+                    downs.push(SlotCoords { r: start..stop, k });
                 }
                 stop += 1;
             }
@@ -71,6 +71,17 @@ impl Puzzle {
     }
 }
 
+//fn fmt_squares<I>(f: &mut fmt::Formatter<'_>, squares: I) -> fmt::Result
+//where
+//    I: for<'a> Iterator<Item = &'a Square>,
+//{
+//    for chr in squares.map(|e| e.unwrap_or('.')) {
+//
+//        write!(f, "{chr}")?;
+//    }
+//    Ok(())
+//}
+
 impl fmt::Display for Puzzle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Grid{{\n")?;
@@ -84,7 +95,7 @@ impl fmt::Display for Puzzle {
 
         write!(f, "DOWNS:\n")?;
         for coords in self.downs.iter() {
-            let slot = self.grid.slice(s![coords.r.clone(), coords.i]);
+            let slot = self.grid.slice(s![coords.r.clone(), coords.k]);
             for chr in slot.iter().map(|e| e.unwrap_or('.')) {
                 write!(f, "{chr}")?;
             }
