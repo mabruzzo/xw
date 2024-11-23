@@ -15,7 +15,7 @@ struct SlotCoords {
 pub struct Puzzle {
     grid: Array2<Square>,
     downs: Vec<SlotCoords>,
-    //TODO acrosses
+    acrosses: Vec<SlotCoords>,
 }
 
 impl Puzzle {
@@ -26,27 +26,32 @@ impl Puzzle {
     //    }
     //}
 
-    fn identify_downs(grid: &Array2<Square>) -> Vec<SlotCoords> {
+    fn identify_slots(grid: &Array2<Square>) -> (Vec<SlotCoords>, Vec<SlotCoords>) {
         let mut downs = vec![];
-        // first iterate over top row
-        for (k, col) in grid.columns().into_iter().enumerate() {
-            let mut stop = 0usize;
-            while stop < grid.shape()[0] {
-                let mut start = stop;
-                while start < grid.shape()[0] && col[start] == None {
-                    start += 1;
-                }
-                stop = start;
-                while stop < grid.shape()[0] && col[stop] != None {
+        let mut acrosses = vec![];
+
+        for (axes, collection) in [(grid.columns(), &mut downs), (grid.rows(), &mut acrosses)] {
+            // first iterate over top row
+            for (k, axis) in axes.into_iter().enumerate() {
+                let mut stop = 0usize;
+                let N = axis.len();
+                while stop < N {
+                    let mut start = stop;
+                    while start < N && axis[start] == None {
+                        start += 1;
+                    }
+                    stop = start;
+                    while stop < N && axis[stop] != None {
+                        stop += 1;
+                    }
+                    if start != stop {
+                        collection.push(SlotCoords { r: start..stop, k });
+                    }
                     stop += 1;
                 }
-                if start != stop {
-                    downs.push(SlotCoords { r: start..stop, k });
-                }
-                stop += 1;
             }
         }
-        downs
+        (acrosses, downs)
     }
 
     pub fn from_str(s: &str) -> Puzzle {
@@ -64,9 +69,11 @@ impl Puzzle {
             }
         }
 
+        let (acrosses, downs) = Puzzle::identify_slots(&grid);
         Puzzle {
-            downs: Puzzle::identify_downs(&grid),
             grid,
+            acrosses,
+            downs,
         }
     }
 }
@@ -92,10 +99,23 @@ impl fmt::Display for Puzzle {
             }
             write!(f, "\n")?;
         }
+        write!(f, "\n")?;
+
+        write!(f, "ACROSSES:\n")?;
+        for coords in self.acrosses.iter() {
+            let slot = self.grid.slice(s![coords.k, coords.r.clone()]);
+            write!(f, " ->")?;
+            for chr in slot.iter().map(|e| e.unwrap_or('.')) {
+                write!(f, "{chr}")?;
+            }
+            write!(f, "\n")?;
+        }
+        write!(f, "\n")?;
 
         write!(f, "DOWNS:\n")?;
         for coords in self.downs.iter() {
             let slot = self.grid.slice(s![coords.r.clone(), coords.k]);
+            write!(f, " ->")?;
             for chr in slot.iter().map(|e| e.unwrap_or('.')) {
                 write!(f, "{chr}")?;
             }
