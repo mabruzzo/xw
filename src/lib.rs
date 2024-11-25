@@ -78,48 +78,38 @@ impl Puzzle {
     }
 }
 
-//fn fmt_squares<I>(f: &mut fmt::Formatter<'_>, squares: I) -> fmt::Result
-//where
-//    I: for<'a> Iterator<Item = &'a Square>,
-//{
-//    for chr in squares.map(|e| e.unwrap_or('.')) {
-//
-//        write!(f, "{chr}")?;
-//    }
-//    Ok(())
-//}
+fn fmt_squares<'a, I>(f: &mut fmt::Formatter<'_>, squares: I, indent: Option<&str>) -> fmt::Result
+where
+    I: Iterator<Item = &'a Square>,
+{
+    if let Some(indent_str) = indent {
+        write!(f, "{indent_str}")?;
+    }
+    for square in squares {
+        write!(f, "{}", square.unwrap_or('.'))?;
+    }
+    write!(f, "\n")
+}
 
 impl fmt::Display for Puzzle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Grid{{\n")?;
         for row in self.grid.rows() {
-            write!(f, "  ")?;
-            for chr in row.iter().map(|e| e.unwrap_or('.')) {
-                write!(f, "{chr}")?;
-            }
-            write!(f, "\n")?;
+            fmt_squares(f, row.iter(), Some("  "))?;
         }
         write!(f, "\n")?;
 
         write!(f, "ACROSSES:\n")?;
         for coords in self.acrosses.iter() {
             let slot = self.grid.slice(s![coords.k, coords.r.clone()]);
-            write!(f, " ->")?;
-            for chr in slot.iter().map(|e| e.unwrap_or('.')) {
-                write!(f, "{chr}")?;
-            }
-            write!(f, "\n")?;
+            fmt_squares(f, slot.iter(), Some(" ->"))?;
         }
         write!(f, "\n")?;
 
         write!(f, "DOWNS:\n")?;
         for coords in self.downs.iter() {
             let slot = self.grid.slice(s![coords.r.clone(), coords.k]);
-            write!(f, " ->")?;
-            for chr in slot.iter().map(|e| e.unwrap_or('.')) {
-                write!(f, "{chr}")?;
-            }
-            write!(f, "\n")?;
+            fmt_squares(f, slot.iter(), Some(" ->"))?;
         }
 
         write!(f, "}}")?;
