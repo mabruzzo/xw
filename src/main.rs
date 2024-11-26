@@ -1,6 +1,7 @@
+use std::error::Error;
 use xw::*;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let crossword_str = "\
 .ABC..asdf
 DE FG.asdf
@@ -8,9 +9,11 @@ TROUT.asdf
 .MNO..asdf\
 ";
 
-    let puzzle = Puzzle::from_str(crossword_str);
+    let puzzle = Puzzle::from_str(crossword_str)?;
 
     println!("This is our puzzle: {puzzle}");
+
+    Ok(())
 }
 
 #[cfg(test)]
