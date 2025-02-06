@@ -124,8 +124,7 @@ impl Puzzle {
 
         for i in 0..nrows {
             let mut j = 0;
-            let mut it = UnicodeSegmentation::graphemes(v[i], true);
-            while let Some(grapheme) = it.next() {
+            for grapheme in UnicodeSegmentation::graphemes(v[i], true) {
                 if j == ncols {
                     // with custom error types, we coud be more descriptive
                     return Err("a row has too many characters");
