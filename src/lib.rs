@@ -1,6 +1,7 @@
 //! Implements a crossword puzzle container
 
 use ndarray::prelude::*;
+use unicode_segmentation::UnicodeSegmentation;
 
 use std::convert::From;
 use std::fmt;
@@ -98,27 +99,62 @@ impl Puzzle {
         (acrosses, downs)
     }
 
-    pub fn from_str(s: &str) -> Puzzle {
+    /// Construct a Puzzle from a string view
+    ///
+    /// #Note About Grapheme Clusters
+    /// [grapheme clusters](https://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries)
+    /// are a subtle aspect of unicode.
+    /// - in short, a "user-perceived character" may correspond to a cluster
+    ///   of one or more unicode characters.
+    /// - As I understand it, you can think of most of these characters as
+    ///   "modifiers" (I believe a g with grave-accent is a "g" followed by a
+    ///   grave-modifier character). BE AWARE: This mental model may not apply
+    ///   for some characters used to represent non-latin-alphabet languages.
+    /// - In any case, a grapheme cluster is an approximation for these
+    ///   clusters of letters
+    ///
+    /// In the future, a crossword puzzle should fully support arbitrary
+    /// grapheme clusters. For now, this constructor, will parse the cluster,
+    /// and report an error.
+    pub fn from_str(s: &str) -> Result<Puzzle, &'static str> {
         let v: Vec<&str> = s.split('\n').collect();
-        let ncols = v[0].len();
+        // true to use extended, as opposed to legacy grapheme clusters
+        let ncols = v[0].graphemes(true).count();
         let nrows = v.len();
         let mut grid = Array::from_elem((nrows, ncols), None);
 
         for i in 0..nrows {
-            for (j, chr) in v[i].char_indices() {
-                grid[[i, j]] = match chr {
-                    '.' => None,
-                    other => Some(other),
+            let mut j = 0;
+            for grapheme in UnicodeSegmentation::graphemes(v[i], true) {
+                if j == ncols {
+                    // with custom error types, we coud be more descriptive
+                    return Err("a row has too many characters");
                 }
+
+                let mut inner_it = grapheme.chars();
+                // based on my understanding of invariants, the following never panics!
+                let chr = inner_it.next().unwrap();
+                if let Some(_dummy) = inner_it.next() {
+                    return Err("crossword puzzle can't contain a grapheme cluster composed of more than 1 unicode character");
+                } else {
+                    grid[[i, j]] = match chr {
+                        '.' => None,
+                        other => Some(other),
+                    }
+                }
+                j += 1;
+            }
+            if j != ncols {
+                return Err("a row has too few characters");
             }
         }
 
         let (acrosses, downs) = Puzzle::identify_slots(&grid);
-        Puzzle {
+        Ok(Puzzle {
             grid,
             acrosses,
             downs,
-        }
+        })
     }
 
     /// Get the number of across-slots
@@ -223,6 +259,36 @@ mod tests {
     use super::Puzzle;
 
     #[test]
+    fn puzzle_creation_errors() {
+        let too_few_chars = "\
+.ABC.
+DE.F\
+";
+        assert!(
+            Puzzle::from_str(too_few_chars).is_err(),
+            "too few characters in the second row"
+        );
+
+        let too_many_chars = "\
+.ABC.
+DE.FGH\
+";
+        assert!(
+            Puzzle::from_str(too_many_chars).is_err(),
+            "too few characters in the second row"
+        );
+
+        let multi_character_grapheme = "\
+.a̐BC.
+DE.FG\
+";
+        assert!(
+            Puzzle::from_str(multi_character_grapheme).is_err(),
+            "can't currently handle a multi-character grapheme cluster"
+        );
+    }
+
+    #[test]
     fn basic() {
         let crossword_str = "\
 .ABC.
@@ -231,7 +297,7 @@ TROUT
 .MNO.\
 ";
 
-        let puzzle = Puzzle::from_str(crossword_str);
+        let puzzle = Puzzle::from_str(crossword_str).unwrap();
 
         let across_vals = ["ABC", "DE", "FG", "TROUT", "MNO"];
         let down_vals = ["DT", "AERM", "B", "ON", "CFUO", "GT"];
