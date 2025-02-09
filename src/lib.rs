@@ -118,6 +118,7 @@ impl Puzzle {
     /// and report an error.
     pub fn from_str(s: &str) -> Result<Puzzle, &'static str> {
         let v: Vec<&str> = s.split('\n').collect();
+        // true to use extended, as opposed to legacy grapheme clusters
         let ncols = v[0].graphemes(true).count();
         let nrows = v.len();
         let mut grid = Array::from_elem((nrows, ncols), None);
