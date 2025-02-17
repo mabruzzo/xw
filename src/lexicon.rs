@@ -1,12 +1,18 @@
+use unicode_segmentation::UnicodeSegmentation;
+
+use super::puzzle::Slot; // I don't love this dependency. Very open to other approaches.
 use std::collections::HashSet;
+use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::BufRead; // required for BufReader::lines()??? I don't get.
 use std::path::Path;
 
+#[derive(Clone, Debug)]
 pub struct Lexicon {
     // If we are enforcing ascii, I assume there's a better way to do this than using Strings.
-    words_by_length: Vec<HashSet<String>>,
+    words: Vec<HashSet<String>>,
+    empty_set: HashSet<String>, // used for word lengths that aren't in the lexicon
 }
 
 //constructors
@@ -14,7 +20,8 @@ impl Lexicon {
     /// Empty Lexicon
     pub fn empty() -> Self {
         Self {
-            words_by_length: vec![HashSet::new()],
+            words: vec![HashSet::new()],
+            empty_set: HashSet::new(),
         }
     }
 
@@ -22,6 +29,7 @@ impl Lexicon {
     ///
     /// Will silently ignore non-ascii words.
     pub fn from_words(words: Vec<String>) -> Self {
+        // TODO what's the right way to generalize this to unicode? Do we even want to do that?
         // get max word length
         let max_length = words.iter().map(|word| word.len()).max().unwrap_or(0);
 
@@ -36,7 +44,10 @@ impl Lexicon {
             words_by_length[word.len()].insert(word);
         }
 
-        Self { words_by_length }
+        Self {
+            words: words_by_length,
+            empty_set: HashSet::new(),
+        }
     }
 
     /// Lexicon from a file.
@@ -53,29 +64,115 @@ impl Lexicon {
     }
 }
 
-impl Lexicon {}
+// basic methods
+impl Lexicon {
+    /// Total number of words in the lexicon
+    pub fn len(&self) -> usize {
+        self.words.iter().map(|w| w.len()).sum()
+    }
+
+    /// HashSet of words of a given length
+    pub fn words_by_length(&self, length: usize) -> &HashSet<String> {
+        if length >= self.words.len() {
+            &self.empty_set
+        } else {
+            &self.words[length]
+        }
+    }
+
+    /// Possible answers for a given slot
+    pub fn posible_answers(&self, slot: &Slot) -> Vec<String> {
+        // should this be an iterator instead of a vector?
+        let mut answers = vec![];
+        for word in self.words_by_length(slot.len()) {
+            let mut matches = true;
+            let chars = UnicodeSegmentation::graphemes(word.as_str(), true);
+            for (i, c) in chars.enumerate() {
+                // THIS ASSUMES UNFILLED SQUARE ARE REPRESENTED BY A SPACE
+                if slot[i] != ' ' && slot[i].to_string() != c {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if matches {
+                answers.push(word.clone());
+            }
+        }
+        answers
+    }
+}
+
+impl fmt::Display for Lexicon {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Lexicon with {} words", self.len())?;
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // I don't like how boilerplatey this is, but I think it's the best way to get each
+    // assert as a test.
+
     #[test]
-    fn empty_lexicon() {
-        let lexicon = Lexicon::empty();
-        // TODO something
+    fn empty_lexicon_has_zero_length() {
+        assert_eq!(Lexicon::empty().len(), 0);
     }
 
-    fn from_words() {
+    #[test]
+    fn empty_lexicon_has_no_words_of_any_length() {
+        assert_eq!(Lexicon::empty().words_by_length(3).len(), 0);
+    }
+
+    fn setup_lexicon_from_words() -> Lexicon {
         let words = vec!["cat".to_string(), "dog".to_string()];
-        let lexicon = Lexicon::from_words(words);
-        // TODO something
+        Lexicon::from_words(words)
     }
 
-    fn from_file() {
+    #[test]
+    fn from_words_has_correct_total_length() {
+        let lexicon = setup_lexicon_from_words();
+        assert_eq!(lexicon.len(), 2);
+    }
+
+    #[test]
+    fn from_words_has_correct_length_three_words() {
+        let lexicon = setup_lexicon_from_words();
+        assert_eq!(lexicon.words_by_length(3).len(), 2);
+    }
+
+    #[test]
+    fn from_words_has_no_length_four_words() {
+        let lexicon = setup_lexicon_from_words();
+        assert_eq!(lexicon.words_by_length(4).len(), 0);
+    }
+
+    fn setup_lexicon_from_file() -> Lexicon {
         let path = std::env::temp_dir().join("test_words.txt");
         std::fs::write(&path, "cat\ndog\nbear").unwrap();
-        let lexicon = Lexicon::from_file(path);
-
-        // TODO something
+        Lexicon::from_file(path).unwrap()
     }
+
+    #[test]
+    fn from_file_has_correct_total_length() {
+        let lexicon = setup_lexicon_from_file();
+        assert_eq!(lexicon.len(), 3);
+    }
+
+    #[test]
+    fn from_file_has_correct_length_three_words() {
+        let lexicon = setup_lexicon_from_file();
+        assert_eq!(lexicon.words_by_length(3).len(), 2);
+    }
+
+    #[test]
+    fn from_file_has_no_length_four_words() {
+        let lexicon = setup_lexicon_from_file();
+        assert_eq!(lexicon.words_by_length(5).len(), 0);
+    }
+
+    // TODO test posible_answers
 }
