@@ -114,63 +114,28 @@ impl fmt::Display for Lexicon {
 mod tests {
     use super::*;
 
-    // I don't like how boilerplatey this is, but I think it's the best way to get each
-    // assert as a test.
-
     #[test]
-    fn empty_lexicon_has_zero_length() {
+    fn test_empty_lexicon() {
         assert_eq!(Lexicon::empty().len(), 0);
-    }
-
-    #[test]
-    fn empty_lexicon_has_no_words_of_any_length() {
         assert_eq!(Lexicon::empty().words_by_length(3).len(), 0);
     }
 
-    fn setup_lexicon_from_words() -> Lexicon {
+    #[test]
+    fn test_lexicon_from_words() {
         let words = vec!["cat".to_string(), "dog".to_string()];
-        Lexicon::from_words(words)
-    }
-
-    #[test]
-    fn from_words_has_correct_total_length() {
-        let lexicon = setup_lexicon_from_words();
+        let lexicon = Lexicon::from_words(words);
         assert_eq!(lexicon.len(), 2);
-    }
-
-    #[test]
-    fn from_words_has_correct_length_three_words() {
-        let lexicon = setup_lexicon_from_words();
         assert_eq!(lexicon.words_by_length(3).len(), 2);
-    }
-
-    #[test]
-    fn from_words_has_no_length_four_words() {
-        let lexicon = setup_lexicon_from_words();
         assert_eq!(lexicon.words_by_length(4).len(), 0);
     }
 
-    fn setup_lexicon_from_file() -> Lexicon {
+    #[test]
+    fn test_lexicon_from_file() {
         let path = std::env::temp_dir().join("test_words.txt");
         std::fs::write(&path, "cat\ndog\nbear").unwrap();
-        Lexicon::from_file(path).unwrap()
-    }
-
-    #[test]
-    fn from_file_has_correct_total_length() {
-        let lexicon = setup_lexicon_from_file();
+        let lexicon = Lexicon::from_file(path).unwrap();
         assert_eq!(lexicon.len(), 3);
-    }
-
-    #[test]
-    fn from_file_has_correct_length_three_words() {
-        let lexicon = setup_lexicon_from_file();
         assert_eq!(lexicon.words_by_length(3).len(), 2);
-    }
-
-    #[test]
-    fn from_file_has_no_length_four_words() {
-        let lexicon = setup_lexicon_from_file();
         assert_eq!(lexicon.words_by_length(5).len(), 0);
     }
 
