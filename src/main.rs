@@ -1,5 +1,5 @@
 use std::error::Error;
-use xw::*;
+use xw::puzzle::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let crossword_str = "\
