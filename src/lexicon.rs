@@ -1,5 +1,3 @@
-use unicode_segmentation::UnicodeSegmentation;
-
 use super::puzzle::Slot; // I don't love this dependency. Very open to other approaches.
 use std::collections::HashSet;
 use std::fmt;
@@ -81,15 +79,15 @@ impl Lexicon {
     }
 
     /// Possible answers for a given slot
-    pub fn posible_answers(&self, slot: &Slot) -> Vec<String> {
+    pub fn possible_answers(&self, slot: &Slot) -> Vec<String> {
         // should this be an iterator instead of a vector?
         let mut answers = vec![];
         for word in self.words_by_length(slot.len()) {
             let mut matches = true;
-            let chars = UnicodeSegmentation::graphemes(word.as_str(), true);
-            for (i, c) in chars.enumerate() {
+
+            for (i, c) in word.chars().enumerate() {
                 // THIS ASSUMES UNFILLED SQUARE ARE REPRESENTED BY A SPACE
-                if slot[i] != ' ' && slot[i].to_string() != c {
+                if slot[i] != ' ' && slot[i].to_ascii_uppercase() != c {
                     matches = false;
                     break;
                 }
@@ -112,7 +110,7 @@ impl fmt::Display for Lexicon {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::Array1;
+    use crate::puzzle::Puzzle;
 
     use super::*;
 
@@ -141,15 +139,6 @@ mod tests {
         assert_eq!(lexicon.words_by_length(5).len(), 0);
     }
 
-    // this functionality should probably be a method of Slot,
-    // but I don't want to change the interface for that in this PR.
-    // I think it's likely that we'll change the architecture going forward,
-    // so I'm keeping it here for now.
-    fn slot_from_string(s: &str) -> Slot {
-        let grid = Array1::from_iter(s.chars().map(|c| Some(c)));
-        let s = Slot { view: grid.view() };
-    }
-
     #[test]
     fn test_possible_answers() {
         let words = vec![
@@ -160,20 +149,27 @@ mod tests {
         ];
         let lexicon = Lexicon::from_words(words);
 
+        // set this up to check against the acrosses
+        let crossword_s = "\
+cat.
+ at.
+xy .
+c  s\
+";
+        let puzzle = Puzzle::from_str(crossword_s).unwrap();
+
         // Test exact match
-        assert_eq!(lexicon.possible_answers("cat", 3), vec!["cat"]);
-
-        // Test with wildcards
-        let matches = lexicon.possible_answers("?at", 3);
+        println!("slot 0: {}", String::from(puzzle.access(0)));
+        assert_eq!(lexicon.possible_answers(&puzzle.access(0)), vec!["CAT"]);
+        // Test with missing letters
+        let matches = lexicon.possible_answers(&puzzle.access(1));
         assert_eq!(matches.len(), 3);
-        assert!(matches.contains(&"cat".to_string()));
-        assert!(matches.contains(&"rat".to_string()));
-        assert!(matches.contains(&"bat".to_string()));
-
+        assert!(matches.contains(&"CAT".to_string()));
+        assert!(matches.contains(&"RAT".to_string()));
+        assert!(matches.contains(&"BAT".to_string()));
         // Test no matches
-        assert!(lexicon.possible_answers("xyz", 3).is_empty());
-
-        // Test length mismatch
-        assert!(lexicon.possible_answers("cats", 3).is_empty());
+        assert!(lexicon.possible_answers(&puzzle.access(2)).is_empty());
+        // Test too-long slot
+        assert!(lexicon.possible_answers(&puzzle.access(3)).is_empty());
     }
 }
