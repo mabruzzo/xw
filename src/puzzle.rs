@@ -28,8 +28,8 @@ impl Index<usize> for Slot<'_> {
     type Output = char;
 
     fn index(&self, index: usize) -> &Self::Output {
-        if let Some(ref index) = self.view[index] {
-            index
+        if let Some(ref letter) = self.view[index] {
+            letter
         } else {
             panic!("A slot instance should not hold an empty Square");
         }
@@ -55,7 +55,9 @@ struct SlotCoords {
     k: usize,        // row / col the slot is in
 }
 
-/// Abstracts the puzzle
+/// Puzzle grid state.
+/// accessing slots is done by index, with no direct grid access, and no distinguishing between
+/// across and down slots.
 #[derive(Clone, Debug)]
 pub struct Puzzle {
     grid: Array2<Square>,
@@ -64,13 +66,6 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    //TODO delete?
-    //pub fn new() -> Grid {
-    //    Grid {
-    //        grid: Array::from_elem((3, 4), None),
-    //    }
-    //}
-
     fn identify_slots(grid: &Array2<Square>) -> (Vec<SlotCoords>, Vec<SlotCoords>) {
         let mut downs = vec![];
         let mut acrosses = vec![];
