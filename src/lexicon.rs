@@ -1,5 +1,4 @@
 use super::puzzle::Slot; // I don't love this dependency. Very open to other approaches.
-use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io;
@@ -9,8 +8,8 @@ use std::path::Path;
 #[derive(Clone, Debug)]
 pub struct Lexicon {
     // If we are enforcing ascii, I assume there's a better way to do this than using Strings.
-    words: Vec<HashSet<String>>,
-    empty_set: HashSet<String>, // used for word lengths that aren't in the lexicon
+    words: Vec<Vec<String>>,
+    empty_set: Vec<String>, // used for word lengths that aren't in the lexicon
 }
 
 //constructors
@@ -18,8 +17,8 @@ impl Lexicon {
     /// Empty Lexicon
     pub fn empty() -> Self {
         Self {
-            words: vec![HashSet::new()],
-            empty_set: HashSet::new(),
+            words: vec![vec![]],
+            empty_set: vec![],
         }
     }
 
@@ -32,19 +31,19 @@ impl Lexicon {
         let max_length = words.iter().map(|word| word.len()).max().unwrap_or(0);
 
         // fill the set for each length
-        let mut words_by_length = vec![HashSet::new(); max_length + 1];
+        let mut words_by_length = vec![vec![]; max_length + 1];
         for word in words {
             if !word.chars().all(|c| c.is_ascii()) {
                 continue;
             }
             let word = word.to_ascii_uppercase();
 
-            words_by_length[word.len()].insert(word);
+            words_by_length[word.len()].push(word);
         }
 
         Self {
             words: words_by_length,
-            empty_set: HashSet::new(),
+            empty_set: vec![],
         }
     }
 
@@ -70,7 +69,7 @@ impl Lexicon {
     }
 
     /// HashSet of words of a given length
-    pub fn words_by_length(&self, length: usize) -> &HashSet<String> {
+    pub fn words_by_length(&self, length: usize) -> &Vec<String> {
         if length >= self.words.len() {
             &self.empty_set
         } else {
