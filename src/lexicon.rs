@@ -24,9 +24,8 @@ impl Lexicon {
 
     /// Lexicon from a list of words
     ///
-    /// Will silently ignore non-ascii words.
+    /// Will silently ignore words with non-ascii characters.
     pub fn from_words(words: Vec<String>) -> Self {
-        // TODO what's the right way to generalize this to unicode? Do we even want to do that?
         // get max word length
         let max_length = words.iter().map(|word| word.len()).max().unwrap_or(0);
 
