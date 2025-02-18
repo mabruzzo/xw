@@ -112,6 +112,8 @@ impl fmt::Display for Lexicon {
 
 #[cfg(test)]
 mod tests {
+    use ndarray::Array1;
+
     use super::*;
 
     #[test]
@@ -139,5 +141,39 @@ mod tests {
         assert_eq!(lexicon.words_by_length(5).len(), 0);
     }
 
-    // TODO test posible_answers
+    // this functionality should probably be a method of Slot,
+    // but I don't want to change the interface for that in this PR.
+    // I think it's likely that we'll change the architecture going forward,
+    // so I'm keeping it here for now.
+    fn slot_from_string(s: &str) -> Slot {
+        let grid = Array1::from_iter(s.chars().map(|c| Some(c)));
+        let s = Slot { view: grid.view() };
+    }
+
+    #[test]
+    fn test_possible_answers() {
+        let words = vec![
+            "cat".to_string(),
+            "dog".to_string(),
+            "rat".to_string(),
+            "bat".to_string(),
+        ];
+        let lexicon = Lexicon::from_words(words);
+
+        // Test exact match
+        assert_eq!(lexicon.possible_answers("cat", 3), vec!["cat"]);
+
+        // Test with wildcards
+        let matches = lexicon.possible_answers("?at", 3);
+        assert_eq!(matches.len(), 3);
+        assert!(matches.contains(&"cat".to_string()));
+        assert!(matches.contains(&"rat".to_string()));
+        assert!(matches.contains(&"bat".to_string()));
+
+        // Test no matches
+        assert!(lexicon.possible_answers("xyz", 3).is_empty());
+
+        // Test length mismatch
+        assert!(lexicon.possible_answers("cats", 3).is_empty());
+    }
 }
