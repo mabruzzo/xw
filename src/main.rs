@@ -9,7 +9,9 @@ TROUT.asdf
 .MNO..asdf\
 ";
 
-    let puzzle = Puzzle::from_str(crossword_str)?;
+    let puzzle = Puzzle::parse(crossword_str)?;
+
+    let lex = xw::lexicon::Lexicon::from_file("words.txt")?;
 
     println!("This is our puzzle: {puzzle}");
 

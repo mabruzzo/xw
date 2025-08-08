@@ -22,6 +22,10 @@ impl Slot<'_> {
     pub fn len(&self) -> usize {
         self.view.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.view.is_empty()
+    }
 }
 
 impl Index<usize> for Slot<'_> {
@@ -70,22 +74,29 @@ impl Puzzle {
         let mut downs = vec![];
         let mut acrosses = vec![];
 
-        for (axes, collection) in [(grid.columns(), &mut downs), (grid.rows(), &mut acrosses)] {
+        // first downs, then acrosses
+        for (rows_or_cols, slots) in [(grid.columns(), &mut downs), (grid.rows(), &mut acrosses)] {
             // first iterate over top row
-            for (k, axis) in axes.into_iter().enumerate() {
-                let mut stop = 0usize;
-                let n = axis.len();
-                while stop < n {
-                    let mut start = stop;
-                    while start < n && axis[start] == None {
+            for (k, rowcol) in rows_or_cols.into_iter().enumerate() {
+                let mut stop = 0usize; // cursor for slot end position
+
+                // until we hit the end of the row/column
+                while stop < rowcol.len() {
+                    let mut start = stop; // cursor for slot start position
+
+                    // find the first fillable square
+                    while start < rowcol.len() && rowcol[start].is_none() {
                         start += 1;
                     }
+
+                    // find the last following fillable square
                     stop = start;
-                    while stop < n && axis[stop] != None {
+                    while stop < rowcol.len() && !rowcol[stop].is_none() {
                         stop += 1;
                     }
+
                     if start != stop {
-                        collection.push(SlotCoords { r: start..stop, k });
+                        slots.push(SlotCoords { r: start..stop, k });
                     }
                     stop += 1;
                 }
@@ -111,7 +122,7 @@ impl Puzzle {
     /// In the future, a crossword puzzle should fully support arbitrary
     /// grapheme clusters. For now, this constructor, will parse the cluster,
     /// and report an error.
-    pub fn from_str(s: &str) -> Result<Puzzle, &'static str> {
+    pub fn parse(s: &str) -> Result<Puzzle, &'static str> {
         let v: Vec<&str> = s.split('\n').collect();
         // true to use extended, as opposed to legacy grapheme clusters
         let ncols = v[0].graphemes(true).count();
@@ -219,25 +230,25 @@ where
     for square in squares {
         write!(f, "{}", square.unwrap_or('.'))?;
     }
-    write!(f, "\n")
+    writeln!(f)
 }
 
 impl fmt::Display for Puzzle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Grid{{\n")?;
+        writeln!(f, "Grid{{")?;
         for row in self.grid.rows() {
             fmt_squares(f, row.iter(), Some("  "))?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
-        write!(f, "ACROSSES:\n")?;
+        writeln!(f, "ACROSSES:")?;
         for coords in self.acrosses.iter() {
             let slot = self.grid.slice(s![coords.k, coords.r.clone()]);
             fmt_squares(f, slot.iter(), Some(" ->"))?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
-        write!(f, "DOWNS:\n")?;
+        writeln!(f, "DOWNS:")?;
         for coords in self.downs.iter() {
             let slot = self.grid.slice(s![coords.r.clone(), coords.k]);
             fmt_squares(f, slot.iter(), Some(" ->"))?;
@@ -260,7 +271,7 @@ mod tests {
 DE.F\
 ";
         assert!(
-            Puzzle::from_str(too_few_chars).is_err(),
+            Puzzle::parse(too_few_chars).is_err(),
             "too few characters in the second row"
         );
 
@@ -269,7 +280,7 @@ DE.F\
 DE.FGH\
 ";
         assert!(
-            Puzzle::from_str(too_many_chars).is_err(),
+            Puzzle::parse(too_many_chars).is_err(),
             "too few characters in the second row"
         );
 
@@ -278,7 +289,7 @@ DE.FGH\
 DE.FG\
 ";
         assert!(
-            Puzzle::from_str(multi_character_grapheme).is_err(),
+            Puzzle::parse(multi_character_grapheme).is_err(),
             "can't currently handle a multi-character grapheme cluster"
         );
     }
@@ -292,7 +303,8 @@ TROUT
 .MNO.\
 ";
 
-        let puzzle = Puzzle::from_str(crossword_str).unwrap();
+        let puzzle = Puzzle::parse(crossword_str).unwrap();
+        println!("{}", &puzzle);
 
         let across_vals = ["ABC", "DE", "FG", "TROUT", "MNO"];
         let down_vals = ["DT", "AERM", "B", "ON", "CFUO", "GT"];
@@ -307,8 +319,8 @@ TROUT
         );
         assert_eq!(puzzle.nslots(), ref_vals.len());
 
-        for i in 0..puzzle.nslots() {
-            assert_eq!(String::from(puzzle.access(i)), ref_vals[i]);
+        for (i, val) in ref_vals.iter().enumerate() {
+            assert_eq!(String::from(puzzle.access(i)), *val);
         }
 
         // we are going to modify modify_index so that it now holds "XY"
@@ -319,16 +331,16 @@ TROUT
         modified_ref_vals[3] = String::from("TROUY");
         modified_ref_vals[modify_index] = new_val.to_string();
 
-        let modified = puzzle.with_filled_slot(modify_index, &new_val);
+        let modified = puzzle.with_filled_slot(modify_index, new_val);
 
         // ensure the original wasn't modified
-        for i in 0..puzzle.nslots() {
-            assert_eq!(String::from(puzzle.access(i)), ref_vals[i]);
+        for (i, val) in ref_vals.iter().enumerate() {
+            assert_eq!(String::from(puzzle.access(i)), *val);
         }
 
         // ensure the modified puzzle has the updated values
-        for i in 0..modified.nslots() {
-            assert_eq!(String::from(modified.access(i)), modified_ref_vals[i]);
+        for (i, val) in modified_ref_vals.iter().enumerate() {
+            assert_eq!(String::from(modified.access(i)), *val);
         }
     }
 }

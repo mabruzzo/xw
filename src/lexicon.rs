@@ -32,7 +32,7 @@ impl Lexicon {
         // fill the set for each length
         let mut words_by_length = vec![vec![]; max_length + 1];
         for word in words {
-            if !word.chars().all(|c| c.is_ascii()) {
+            if !word.is_ascii() {
                 continue;
             }
             let word = word.to_ascii_uppercase();
@@ -67,6 +67,10 @@ impl Lexicon {
         self.words.iter().map(|w| w.len()).sum()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.words.iter().all(|w| w.is_empty())
+    }
+
     /// HashSet of words of a given length
     pub fn words_by_length(&self, length: usize) -> &Vec<String> {
         if length >= self.words.len() {
@@ -76,7 +80,7 @@ impl Lexicon {
         }
     }
 
-    /// Possible answers for a given slot
+    /// Possible answers for a given slot, assuming unfilled squares are represented by a space
     pub fn possible_answers(&self, slot: &Slot) -> Vec<String> {
         // should this be an iterator instead of a vector?
         let mut answers = vec![];
@@ -84,7 +88,6 @@ impl Lexicon {
             let mut matches = true;
 
             for (i, c) in word.chars().enumerate() {
-                // THIS ASSUMES UNFILLED SQUARE ARE REPRESENTED BY A SPACE
                 if slot[i] != ' ' && slot[i].to_ascii_uppercase() != c {
                     matches = false;
                     break;
@@ -154,7 +157,7 @@ cat.
 xy .
 c  s\
 ";
-        let puzzle = Puzzle::from_str(crossword_s).unwrap();
+        let puzzle = Puzzle::parse(crossword_s).unwrap();
 
         // Test exact match
         println!("slot 0: {}", String::from(puzzle.access(0)));
